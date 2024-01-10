@@ -21,7 +21,7 @@
 use std::ops::{Deref, DerefMut, Index, IndexMut, Range, RangeFrom, RangeFull, RangeTo};
 
 use libc::c_void;
-#[cfg(not(windows))]
+#[cfg(all(not(windows),not(target_os="wasi")))]
 use libc::size_t;
 
 /// A buffer which zeroes its memory on `.clear()`, `.resize()` and
@@ -147,11 +147,11 @@ impl Default for CryptoVec {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows),not(target_os="wasi")))]
 unsafe fn mlock(ptr: *const u8, len: usize) {
     libc::mlock(ptr as *const c_void, len as size_t);
 }
-#[cfg(not(windows))]
+#[cfg(all(not(windows),not(target_os="wasi")))]
 unsafe fn munlock(ptr: *const u8, len: usize) {
     libc::munlock(ptr as *const c_void, len as size_t);
 }
@@ -169,6 +169,15 @@ unsafe fn mlock(ptr: *const u8, len: usize) {
 #[cfg(windows)]
 unsafe fn munlock(ptr: *const u8, len: usize) {
     VirtualUnlock(ptr as LPVOID, len as SIZE_T);
+}
+
+#[cfg(target_os="wasi")]
+unsafe fn mlock(_ptr: *const u8, _len: usize) {
+	// NOP
+}
+#[cfg(target_os="wasi")]
+unsafe fn munlock(_ptr: *const u8, _len: usize) {
+	// NOP
 }
 
 impl Clone for CryptoVec {
