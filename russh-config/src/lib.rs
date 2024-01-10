@@ -33,6 +33,7 @@ pub struct Config {
     pub host_name: String,
     pub port: u16,
     pub identity_file: Option<String>,
+    #[cfg(not(target_os="wasi"))]
     pub proxy_command: Option<String>,
     pub add_keys_to_agent: AddKeysToAgent,
 }
@@ -44,6 +45,7 @@ impl Config {
             host_name: host_name.to_string(),
             port: 22,
             identity_file: None,
+            #[cfg(not(target_os="wasi"))]
             proxy_command: None,
             add_keys_to_agent: AddKeysToAgent::default(),
         }
@@ -51,6 +53,7 @@ impl Config {
 }
 
 impl Config {
+    #[cfg(not(target_os="wasi"))]
     fn update_proxy_command(&mut self) {
         if let Some(ref mut prox) = self.proxy_command {
             *prox = prox.replace("%h", &self.host_name);
@@ -58,6 +61,7 @@ impl Config {
         }
     }
 
+    #[cfg(not(target_os="wasi"))]
     pub async fn stream(&mut self) -> Result<Stream, Error> {
         self.update_proxy_command();
         if let Some(ref proxy_command) = self.proxy_command {
@@ -72,6 +76,15 @@ impl Config {
                 .ok_or(Error::NotResolvable)?;
             Stream::tcp_connect(&address).await.map_err(Into::into)
         }
+    }
+
+    #[cfg(target_os="wasi")]
+    pub async fn stream(&mut self) -> Result<Stream, Error> {
+        let address = (self.host_name.as_str(), self.port)
+            .to_socket_addrs()?
+            .next()
+            .ok_or(Error::NotResolvable)?;
+        Stream::tcp_connect(&address).await.map_err(Into::into)
     }
 }
 
@@ -147,6 +160,7 @@ pub fn parse(file: &str, host: &str) -> Result<Config, Error> {
                             config.identity_file = Some(id.to_string())
                         }
                     }
+                    #[cfg(not(target_os="wasi"))]
                     "proxycommand" => config.proxy_command = Some(value.trim_start().to_string()),
                     "addkeystoagent" => match value.to_lowercase().as_str() {
                         "yes" => config.add_keys_to_agent = AddKeysToAgent::Yes,
