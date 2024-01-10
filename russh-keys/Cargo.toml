@@ -57,6 +57,9 @@ serde = { version = "1.0", features = ["derive"] }
 sha1 = "0.10"
 sha2 = "0.10"
 thiserror = "1.0"
+yasna = { version = "0.5.0", features = ["bit-vec", "num-bigint"] }
+
+[target.'cfg(not(target_os="wasi"))'.dependencies]
 tokio = { version = "1.17.0", features = [
   "io-util",
   "rt-multi-thread",
@@ -64,7 +67,15 @@ tokio = { version = "1.17.0", features = [
   "net",
 ] }
 tokio-stream = { version = "0.1", features = ["net"] }
-yasna = { version = "0.5.0", features = ["bit-vec", "num-bigint"] }
+
+[target.'cfg(target_os="wasi")'.dependencies]
+tokio = { package = "tokio_wasi", version = "1.17.0", features = [
+  "io-util",
+  "rt",
+  "time",
+  "net",
+] }
+tokio-stream = { package = "tokio-stream_wasi", version = "0.1", features = ["net"] }
 
 [features]
 vendored-openssl = ["openssl", "openssl/vendored"]
